@@ -165,6 +165,31 @@ class DibsCommand extends TerminusCommand implements SiteAwareInterface {
   }
 
   /**
+   * Returns environments that have been dibs'd for a certain amount of time.
+   *
+   * @param string $site The site name or UUID of the site for which you wish to
+   *   view the dibs report.
+   *
+   * @param string $filter An optional regex pattern used to filter the pool of
+   *   environments for which you wish to view the report.
+   * 
+   * @param integer $duration In seconds, threshold for duration that an environment has been dibs'd.
+   * 
+   * @return RowsOfFields
+   *
+   * @command env:dibs:old
+   * @authorize
+   * @field-labels
+   *   env: Environment
+   *   age: Age (Seconds)
+   * @usage terminus site:dibs:old <site> [<filter>] [<duration>]
+   *   Return a report of dibs'd environments and duration of dibs given a certain threshold.
+   */
+  public function reportOldDibs($site, $filter = '^((?!^live$).)*$', $duration) {
+    return new RowOfField($this->getDibsOfCertainAge($site, $filter, $duration));
+  }
+
+  /**
    * Attempts to call dibs given an array of arguments containing a site name
    * and environment name.
    *
@@ -464,4 +489,32 @@ class DibsCommand extends TerminusCommand implements SiteAwareInterface {
     }
   }
 
+  /**
+   * Returns a list of environments that have been dibs'd for a given duration.
+   * @param $site
+   * @param $regex
+   * @param $threshold (s)
+   * @return array
+   *   An array of environments that have been dibs'd for a certain time.
+   */
+  protected function getDibsOfCertainAge($site, $regex, $threshold = 0) {
+    $dibs = $this->getDibsReport($site, $regex);
+    $oldDibs = [];
+
+    // Go through dibs report and save dibs that meet age threshold.
+    foreach ($dibs as $env) {
+      if (!is_null($env['at'])) {
+        // Get age of dibs. 
+        $age = time() - strtotime($env['at']);
+        if ($age > $threshold) {
+          $oldDibs[] = [
+            'env' => $env,
+            'age' => $age
+          ];
+        }
+      }
+    }
+
+    return $oldDibs;
+  }
 }
