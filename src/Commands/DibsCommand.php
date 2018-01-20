@@ -9,6 +9,7 @@ use Pantheon\Terminus\Exceptions\TerminusException;
 use Pantheon\Terminus\Models\Environment;
 use Pantheon\Terminus\Site\SiteAwareInterface;
 use Pantheon\Terminus\Site\SiteAwareTrait;
+use \DateTime;
 
 /**
  * Class DibsCommand
@@ -173,7 +174,7 @@ class DibsCommand extends TerminusCommand implements SiteAwareInterface {
    * @param string $filter An optional regex pattern used to filter the pool of
    *   environments for which you wish to view the report.
    * 
-   * @param integer $duration In seconds, threshold for duration that an environment has been dibs'd.
+   * @param integer $duration An optional threshold for duration that an environment has been dibs'd in seconds.
    * 
    * @return RowsOfFields
    *
@@ -183,10 +184,10 @@ class DibsCommand extends TerminusCommand implements SiteAwareInterface {
    *   env: Environment
    *   age: Age (Seconds)
    * @usage terminus site:dibs:old <site> [<filter>] [<duration>]
-   *   Return a report of dibs'd environments and duration of dibs given a certain threshold.
+   *   Return a report of dibs'd environments and duration of dibs that meet a given threshold.
    */
-  public function reportOldDibs($site, $filter = '^((?!^live$).)*$', $duration) {
-    return new RowOfField($this->getDibsOfCertainAge($site, $filter, $duration));
+  public function reportOldDibs($site, $filter = '^((?!^live$).)*$', $duration = 0) {
+    return new RowsOfFields($this->getDibsAge($site, $filter, $duration));
   }
 
   /**
@@ -495,9 +496,9 @@ class DibsCommand extends TerminusCommand implements SiteAwareInterface {
    * @param $regex
    * @param $threshold (s)
    * @return array
-   *   An array of environments that have been dibs'd for a certain time.
+   *   An array of environments that have been dibs'd for a certain amount of time.
    */
-  protected function getDibsOfCertainAge($site, $regex, $threshold = 0) {
+  protected function getDibsAge($site, $regex, $threshold) {
     $dibs = $this->getDibsReport($site, $regex);
     $oldDibs = [];
 
@@ -505,10 +506,10 @@ class DibsCommand extends TerminusCommand implements SiteAwareInterface {
     foreach ($dibs as $env) {
       if (!is_null($env['at'])) {
         // Get age of dibs. 
-        $age = time() - strtotime($env['at']);
+        $age = time() - DateTime::createFromFormat('D M jS \a\t h:ia', $env['at'])->getTimestamp();
         if ($age > $threshold) {
           $oldDibs[] = [
-            'env' => $env,
+            'env' => $env['env'],
             'age' => $age
           ];
         }
