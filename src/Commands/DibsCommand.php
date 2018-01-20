@@ -174,7 +174,7 @@ class DibsCommand extends TerminusCommand implements SiteAwareInterface {
    * @param string $filter An optional regex pattern used to filter the pool of
    *   environments for which you wish to view the report.
    * 
-   * @param integer $duration An optional threshold for duration that an environment has been dibs'd in seconds.
+   * @param integer $duration An optional time threshold (seconds) for duration that an environment has been dibs'd.
    * 
    * @return RowsOfFields
    *
